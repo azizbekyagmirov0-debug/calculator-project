@@ -1,0 +1,84 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
+
+app.use(express.static(path.join(__dirname)));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+let usersDB = []; 
+let logsDB = [];
+const ADMIN_PASS = "eziz2012ggg01$";
+
+app.post('/api/auth/google', (req, res) => {
+    const { email, name, picture } = req.body;
+    if (!email.endsWith('@gmail.com')) {
+        return res.status(400).json({ error: "Faqat gmail.com" });
+    }
+    
+    let user = usersDB.find(u => u.email === email);
+    const now = new Date().toLocaleString();
+    
+    if (!user) {
+        const newId = (usersDB.length + 1).toString().padStart(8, '0');
+        user = { 
+            id: newId, 
+            email, 
+            name, 
+            picture: picture || 'https://via.placeholder.com/50', 
+            joined: now,
+            loginTime: now,
+            logoutTime: null
+        };
+        usersDB.push(user);
+        addLog(user.id, "RO'YXATDAN O'TISH", `Yangi foydalanuvchi. Kirish vaqti: ${now}`);
+    } else {
+        user.loginTime = now;
+        user.logoutTime = null;
+        addLog(user.id, "KIRISH", `Kirish vaqti: ${now}`);
+    }
+    
+    res.json({ success: true, user });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+    const { userId } = req.body;
+    let user = usersDB.find(u => u.id === userId);
+    if (user) {
+        const now = new Date().toLocaleString();
+        user.logoutTime = now;
+        addLog(user.id, "CHIQISH", `Chiqish vaqti: ${now}`);
+    }
+    res.json({ success: true });
+});
+
+app.post('/api/calc/history', (req, res) => {
+    const { userId, expression, result } = req.body;
+    const now = new Date().toLocaleString();
+    addLog(userId, "HISOBLASH", `${expression} = ${result} | Vaqt: ${now}`);
+    res.json({ success: true });
+});
+
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASS) {
+        res.json({ success: true, users: usersDB, logs: logsDB });
+    } else {
+        res.status(403).json({ error: "Parol noto'g'ri" });
+    }
+});
+
+function addLog(userId, action, details) {
+    logsDB.unshift({ userId, action, details, time: new Date().toLocaleString() });
+}
+
+app.listen(3000, () => {
+    console.log("Server 3000-portda ishlamoqda...");
+});
