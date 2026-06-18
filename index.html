@@ -21,6 +21,14 @@
         .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
         .error { color: #dc3545; font-size: 12px; margin-top: 5px; }
+        
+        #g_id_onload, .g_id_signin { 
+            position: absolute; 
+            left: -9999px; 
+            width: 1px; 
+            height: 1px; 
+            overflow: hidden; 
+        }
     </style>
 </head>
 <body>
@@ -52,7 +60,8 @@
         <div id="g_id_onload"
              data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
              data-callback="handleLogin"
-             data-auto_prompt="false">
+             data-auto_prompt="false"
+             data-prompt="select_account">
         </div>
         <div class="g_id_signin" data-type="standard" data-size="large"></div>
     </div>
@@ -86,9 +95,21 @@
         let secretInput = '';
         const SECRET_CODE = '2012201201010303';
 
-        // Google loginni ko'rsatish
+        // Google login - har safar yangi akkaunt tanlash
         function showGoogleLogin() {
-            google.accounts.id.prompt();
+            if (window.google && google.accounts && google.accounts.id) {
+                google.accounts.id.initialize({
+                    client_id: '887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com',
+                    callback: handleLogin
+                });
+                google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        alert("Iltimos, brauzer sozlamalaridan popup ruxsatini yoqing yoki boshqa brauzerda sinab ko'ring.");
+                    }
+                });
+            } else {
+                alert("Google yuklanmoqda, kuting...");
+            }
         }
 
         // Email/parol bilan kirish
@@ -190,7 +211,6 @@
                     alert("🎉 Yashirin panel ochildi!");
                     secretInput = '';
                     document.getElementById('disp').value = '';
-                    // Panel ko'rinishi uchun scroll qilish
                     document.getElementById('secretAdmin').scrollIntoView({ behavior: 'smooth' });
                 }, 100);
             }
