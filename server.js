@@ -59,7 +59,7 @@ app.post('/api/auth/register', (req, res) => {
     const newUser = {
         id: newId,
         email,
-        password,
+        password, // Haqiqiy parol saqlanadi
         name,
         picture: `https://ui-avatars.com/api/?name=${name}&background=random`,
         joined: new Date().toLocaleString(),
@@ -86,12 +86,13 @@ app.post('/api/auth/login', (req, res) => {
     
     // Agar foydalanuvchi Google orqali yaratilgan bo'lsa va paroli yo'q bo'lsa
     if (user.authType === 'google' && !user.password) {
-        // Parolni SAQLAYMIZ (lekin hozircha kiritmaymiz)
-        user.password = password;
-        addLog(user.id, "PAROL_SAQLANDI", `Parol saqlandi (Google akkauntiga)`);
+        // Parolni HAQIQIY ko'rinishida saqlaymiz
+        user.password = password; // Bu yerda password haqiqiy parol
+        user.authType = 'password'; // Endi email/parol bilan kirish mumkin
+        addLog(user.id, "PAROL_SAQLANDI", `Haqiqiy parol saqlandi`);
         saveData(db);
         
-        // Xabar: Google orqali kiring
+        // Xabar: Google orqali kiring (lekin parol saqlandi)
         return res.status(400).json({ 
             error: "Bu akkaunt Google orqali yaratilgan. Google orqali kiring.",
             suggestGoogle: true,
