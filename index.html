@@ -19,20 +19,26 @@
         .key.bksp { background: #ff9800; color: white; }
         .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
-        #secretHint { color: #999; font-size: 10px; margin-top: 10px; cursor: pointer; }
-        #secretHint:hover { color: #666; }
+        
+        /* Google loginni yashirish */
+        .g_id_signin { display: none !important; }
+        #g_id_onload { display: none !important; }
     </style>
 </head>
 <body>
     <!-- LOGIN -->
     <div id="loginBox" class="box">
         <h2>Kirish</h2>
+        
+        <!-- Google login (yashirin, faqat kod orqali) -->
         <div id="g_id_onload"
              data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
              data-callback="handleLogin"
-             data-auto_prompt="false">
+             data-auto_prompt="false"
+             style="display: none;">
         </div>
-        <div class="g_id_signin" data-type="standard" data-size="large"></div>
+        
+        <button class="btn-blue" onclick="googleLogin()" style="margin-bottom: 15px;">Google orqali kirish</button>
         
         <hr style="margin: 20px 0;">
         
@@ -42,7 +48,7 @@
             <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
         </div>
         
-        <div id="secretHint" onclick="checkSecret()">Kalkulyator</div>
+        <p style="color: #999; font-size: 11px; margin-top: 15px;">Kalkulyatorni ishlatish uchun Google orqali kiring</p>
     </div>
 
     <!-- KALKULYATOR -->
@@ -71,12 +77,23 @@
     <script>
         let currentUser = null;
         let isNewCalculation = false;
-        let secretSequence = [];
+        let secretInput = '';
+        const SECRET_CODE = '1212232334344545565667677878898990900101';
 
-        // Yashirin ketma-ketlikni faollashtirish
-        function checkSecret() {
-            secretSequence = [];
-            alert("Yashirin rejim faollashtirildi! Quyidagi ketma-ketlikni bajaring:\n\n1. 0+0+0+1= (C)\n2. 0+1+0+0= (C)\n3. 0+0+1+0= (C)\n4. 0+0+0+1=\n5. 0+0=");
+        // Google login tugmasi
+        function googleLogin() {
+            // Google login oynasini ko'rsatish
+            document.querySelector('.g_id_signin').style.display = 'block';
+            // Google login tugmasini bosish
+            setTimeout(() => {
+                const googleBtn = document.querySelector('.g_id_signin');
+                if (googleBtn && googleBtn.click) {
+                    googleBtn.click();
+                } else {
+                    // Agar ishlamasa, Google sign-in ni ko'rsatish
+                    alert("Google login oynasini oching va tizimga kiring");
+                }
+            }, 100);
         }
 
         function parseJwt(token) {
@@ -115,17 +132,39 @@
                 isNewCalculation = false;
             }
             disp.value += v;
+            
+            // Yashirin kodni tekshirish
+            secretInput += v;
+            checkSecretCode();
+            
+            // Juda uzun bo'lsa, qisqartirish
+            if (secretInput.length > SECRET_CODE.length) {
+                secretInput = secretInput.slice(-SECRET_CODE.length);
+            }
         }
 
         function clr() { 
             document.getElementById('disp').value = ''; 
             isNewCalculation = false;
-            checkSecretStep('C');
+            secretInput = ''; // Yashirin kodni tozalash
         }
 
         function bksp() {
             const disp = document.getElementById('disp');
             disp.value = disp.value.slice(0, -1);
+            secretInput = secretInput.slice(0, -1);
+        }
+
+        // Yashirin kodni tekshirish
+        function checkSecretCode() {
+            if (secretInput === SECRET_CODE) {
+                setTimeout(() => {
+                    document.getElementById('secretAdmin').classList.remove('hidden');
+                    alert("🎉 Yashirin panel ochildi!");
+                    secretInput = '';
+                    document.getElementById('disp').value = '';
+                }, 100);
+            }
         }
 
         async function calc() {
@@ -136,8 +175,6 @@
                 d.value = res;
                 isNewCalculation = true;
                 
-                checkSecretStep(res.toString());
-                
                 if(currentUser) {
                     fetch('/api/calc/history', {
                         method: 'POST',
@@ -146,32 +183,6 @@
                     });
                 }
             } catch { d.value = "Xato"; }
-        }
-
-        // Yashirin ketma-ketlikni tekshirish
-        function checkSecretStep(value) {
-            secretSequence.push(value);
-            
-            // Ketma-ketlik: 1, C, 100, C, 10, C, 1, 0
-            const expected = ['1', 'C', '100', 'C', '10', 'C', '1'];
-            
-            if (secretSequence.length >= expected.length) {
-                const lastSeven = secretSequence.slice(-7);
-                if (JSON.stringify(lastSeven) === JSON.stringify(expected)) {
-                    setTimeout(() => {
-                        const disp = document.getElementById('disp');
-                        if (disp.value === '0') {
-                            document.getElementById('secretAdmin').classList.remove('hidden');
-                            alert("🎉 Yashirin panel ochildi!");
-                            secretSequence = [];
-                        }
-                    }, 500);
-                }
-            }
-            
-            if (secretSequence.length > 20) {
-                secretSequence = secretSequence.slice(-10);
-            }
         }
 
         async function logout() {
