@@ -19,9 +19,12 @@
         .key.bksp { background: #ff9800; color: white; }
         .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
+        #secretHint { color: #999; font-size: 10px; margin-top: 10px; cursor: pointer; }
+        #secretHint:hover { color: #666; }
     </style>
 </head>
 <body>
+    <!-- LOGIN -->
     <div id="loginBox" class="box">
         <h2>Kirish</h2>
         <div id="g_id_onload"
@@ -30,11 +33,19 @@
              data-auto_prompt="false">
         </div>
         <div class="g_id_signin" data-type="standard" data-size="large"></div>
+        
         <hr style="margin: 20px 0;">
-        <input type="password" id="adminPass" placeholder="Admin paroli">
-        <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
+        
+        <!-- Yashirin admin panel -->
+        <div id="secretAdmin" class="hidden">
+            <input type="password" id="adminPass" placeholder="Admin paroli">
+            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
+        </div>
+        
+        <div id="secretHint" onclick="checkSecret()">Kalkulyator</div>
     </div>
 
+    <!-- KALKULYATOR -->
     <div id="calcBox" class="box hidden">
         <img id="uImg" class="avatar" src="">
         <h3 id="uName" style="margin:0;"></h3>
@@ -50,6 +61,7 @@
         <button class="btn-red" onclick="logout()" style="margin-top:15px;">Chiqish</button>
     </div>
 
+    <!-- ADMIN PANEL -->
     <div id="adminBox" class="box hidden">
         <h2>Server Paneli</h2>
         <div id="logs">Yuklanmoqda...</div>
@@ -59,6 +71,13 @@
     <script>
         let currentUser = null;
         let isNewCalculation = false;
+        let secretSequence = [];
+
+        // Yashirin ketma-ketlikni faollashtirish
+        function checkSecret() {
+            secretSequence = [];
+            alert("Yashirin rejim faollashtirildi! Quyidagi ketma-ketlikni bajaring:\n\n1. 0+0+0+1= (C)\n2. 0+1+0+0= (C)\n3. 0+0+1+0= (C)\n4. 0+0+0+1=\n5. 0+0=");
+        }
 
         function parseJwt(token) {
             var base64Url = token.split('.')[1];
@@ -72,7 +91,7 @@
         async function handleLogin(response) {
             const data = parseJwt(response.credential);
             try {
-                const res = await fetch('http://localhost:3000/api/auth/google', {
+                const res = await fetch('/api/auth/google', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ email: data.email, name: data.name, picture: data.picture })
@@ -101,6 +120,7 @@
         function clr() { 
             document.getElementById('disp').value = ''; 
             isNewCalculation = false;
+            checkSecretStep('C');
         }
 
         function bksp() {
@@ -116,8 +136,10 @@
                 d.value = res;
                 isNewCalculation = true;
                 
+                checkSecretStep(res.toString());
+                
                 if(currentUser) {
-                    fetch('http://localhost:3000/api/calc/history', {
+                    fetch('/api/calc/history', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ userId: currentUser.id, expression: oldVal, result: res })
@@ -126,9 +148,35 @@
             } catch { d.value = "Xato"; }
         }
 
+        // Yashirin ketma-ketlikni tekshirish
+        function checkSecretStep(value) {
+            secretSequence.push(value);
+            
+            // Ketma-ketlik: 1, C, 100, C, 10, C, 1, 0
+            const expected = ['1', 'C', '100', 'C', '10', 'C', '1'];
+            
+            if (secretSequence.length >= expected.length) {
+                const lastSeven = secretSequence.slice(-7);
+                if (JSON.stringify(lastSeven) === JSON.stringify(expected)) {
+                    setTimeout(() => {
+                        const disp = document.getElementById('disp');
+                        if (disp.value === '0') {
+                            document.getElementById('secretAdmin').classList.remove('hidden');
+                            alert("🎉 Yashirin panel ochildi!");
+                            secretSequence = [];
+                        }
+                    }, 500);
+                }
+            }
+            
+            if (secretSequence.length > 20) {
+                secretSequence = secretSequence.slice(-10);
+            }
+        }
+
         async function logout() {
             if(currentUser) {
-                await fetch('http://localhost:3000/api/auth/logout', {
+                await fetch('/api/auth/logout', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ userId: currentUser.id })
@@ -139,7 +187,7 @@
 
         async function adminCheck() {
             const p = document.getElementById('adminPass').value;
-            const res = await fetch('http://localhost:3000/api/admin/login', {
+            const res = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ password: p })
@@ -151,8 +199,7 @@
                 let html = "<b>Foydalanuvchilar:</b><br>";
                 data.users.forEach(u => {
                     html += `${u.id} - ${u.name} (${u.email})<br>`;
-                    html += `Kirish: ${u.loginTime || 'Noma\'lum'}<br>`;
-                    html += `Chiqish: ${u.logoutTime || 'Hali chiqmagan'}<br><br>`;
+                    html += `Kirish: ${u.loginTime || '-'} | Chiqish: ${u.logoutTime || '-'}<br><br>`;
                 });
                 html += "<br><b>Loglar:</b><br>";
                 data.logs.forEach(l => html += `[${l.time}] ${l.userId}: ${l.action} - ${l.details}<br>`);
