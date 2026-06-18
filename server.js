@@ -50,13 +50,13 @@ app.post('/api/auth/register', (req, res) => {
     res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
 });
 
-// Kirish
+// Kirish (email/parol)
 app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
     const user = usersDB.find(u => u.email === email);
     
     if (!user) {
-        return res.status(400).json({ error: "Email topilmadi" });
+        return res.status(404).json({ error: "Email topilmadi" });
     }
     
     if (user.password !== password) {

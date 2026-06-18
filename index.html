@@ -7,7 +7,7 @@
     <style>
         body { font-family: sans-serif; background: #eef2f3; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 320px; text-align: center; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; }
         button { width: 100%; padding: 10px; margin-top: 5px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
         .btn-blue { background: #007bff; color: white; }
@@ -21,72 +21,41 @@
         .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
         .error { color: #dc3545; font-size: 12px; margin-top: 5px; }
-        .success { color: #28a745; font-size: 12px; margin-top: 5px; }
-        .tab-container { display: flex; margin-bottom: 15px; }
-        .tab { flex: 1; padding: 8px; cursor: pointer; border: none; background: #f0f0f0; font-weight: bold; }
-        .tab.active { background: #007bff; color: white; }
-        #g_id_onload, .g_id_signin { display: none; }
+        #g_id_onload, .g_id_signin { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+        #secretAdmin { margin-top: 15px; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <!-- LOGIN -->
     <div id="loginBox" class="box">
         <h2>Kirish</h2>
         
-        <!-- Tablar -->
-        <div class="tab-container">
-            <button class="tab active" onclick="showLoginTab()">Kirish</button>
-            <button class="tab" onclick="showRegisterTab()">Ro'yxatdan o'tish</button>
-        </div>
+        <input type="email" id="loginEmail" placeholder="Email (gmail.com)" required>
+        <input type="password" id="loginPassword" placeholder="Parol" required>
+        <button class="btn-blue" onclick="loginWithEmail()">Kirish</button>
         
-        <!-- Kirish formasi -->
-        <div id="loginForm">
-            <input type="email" id="loginEmail" placeholder="Email (gmail.com)" required>
-            <input type="password" id="loginPassword" placeholder="Parol" required>
-            <button class="btn-blue" onclick="loginWithEmail()">Kirish</button>
-            
-            <div style="margin: 15px 0;">
-                <small>yoki</small>
-            </div>
-            
-            <button class="btn-green" onclick="showGoogleLogin()">Google orqali kirish</button>
-            <div id="loginError" class="error"></div>
-        </div>
+        <div style="margin: 15px 0;"><small>yoki</small></div>
         
-        <!-- Ro'yxatdan o'tish formasi -->
-        <div id="registerForm" class="hidden">
-            <input type="text" id="registerName" placeholder="Ism" required>
-            <input type="email" id="registerEmail" placeholder="Email (gmail.com)" required>
-            <input type="password" id="registerPassword" placeholder="Parol (kamida 6 ta belgi)" required>
-            <button class="btn-green" onclick="registerWithEmail()">Ro'yxatdan o'tish</button>
-            
-            <div style="margin: 15px 0;">
-                <small>yoki</small>
-            </div>
-            
-            <button class="btn-blue" onclick="showGoogleLogin()">Google orqali ro'yxatdan o'tish</button>
-            <div id="registerError" class="error"></div>
-            <div id="registerSuccess" class="success"></div>
+        <button class="btn-green" onclick="showGoogleLogin()">Google orqali kirish</button>
+        <div id="loginError" class="error"></div>
+        
+        <!-- YASHIRIN PANEL - BU YERDA -->
+        <div id="secretAdmin" class="hidden">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Serverga Kirish</h4>
+            <input type="password" id="adminPass" placeholder="Admin parol">
+            <button class="btn-blue" onclick="adminCheck()">Kirish</button>
         </div>
         
         <hr style="margin: 20px 0;">
         
-        <!-- Yashirin admin panel -->
-        <div id="secretAdmin" class="hidden">
-            <input type="password" id="adminPass" placeholder="Admin paroli">
-            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
-        </div>
-        
-        <!-- Google login (yashirin) -->
         <div id="g_id_onload"
              data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
              data-callback="handleLogin"
-             data-auto_prompt="false">
+             data-auto_prompt="false"
+             data-prompt="select_account">
         </div>
         <div class="g_id_signin" data-type="standard" data-size="large"></div>
     </div>
 
-    <!-- KALKULYATOR -->
     <div id="calcBox" class="box hidden">
         <img id="uImg" class="avatar" src="">
         <h3 id="greeting" style="margin:0; color: #007bff;"></h3>
@@ -102,7 +71,6 @@
         <button class="btn-red" onclick="logout()" style="margin-top:15px;">Chiqish</button>
     </div>
 
-    <!-- ADMIN PANEL -->
     <div id="adminBox" class="box hidden">
         <h2>Server Paneli</h2>
         <div id="logs">Yuklanmoqda...</div>
@@ -115,35 +83,16 @@
         let secretInput = '';
         const SECRET_CODE = '2012201201010303';
 
-        // Tablarni ko'rsatish
-        function showLoginTab() {
-            document.getElementById('loginForm').classList.remove('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
-            document.querySelectorAll('.tab')[0].classList.add('active');
-            document.querySelectorAll('.tab')[1].classList.remove('active');
-            clearMessages();
-        }
-
-        function showRegisterTab() {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-            document.querySelectorAll('.tab')[0].classList.remove('active');
-            document.querySelectorAll('.tab')[1].classList.add('active');
-            clearMessages();
-        }
-
-        function clearMessages() {
-            document.getElementById('loginError').textContent = '';
-            document.getElementById('registerError').textContent = '';
-            document.getElementById('registerSuccess').textContent = '';
-        }
-
-        // Google loginni ko'rsatish
         function showGoogleLogin() {
-            google.accounts.id.prompt();
+            if (window.google && google.accounts && google.accounts.id) {
+                google.accounts.id.initialize({
+                    client_id: '887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com',
+                    callback: handleLogin
+                });
+                google.accounts.id.prompt();
+            }
         }
 
-        // Email/parol bilan kirish
         async function loginWithEmail() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
@@ -165,61 +114,11 @@
                 if (result.success) {
                     currentUser = result.user;
                     showCalculator();
-                    errorDiv.textContent = "";
                 } else {
-                    errorDiv.textContent = result.error || "Xatolik!";
+                    errorDiv.textContent = "Gmail topilmadi! Google orqali kiring.";
                 }
             } catch(e) {
                 errorDiv.textContent = "Server ishmayapti!";
-            }
-        }
-
-        // Email/parol bilan ro'yxatdan o'tish
-        async function registerWithEmail() {
-            const name = document.getElementById('registerName').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const errorDiv = document.getElementById('registerError');
-            const successDiv = document.getElementById('registerSuccess');
-            
-            if (!name || !email || !password) {
-                errorDiv.textContent = "Barcha maydonlarni to'ldiring!";
-                return;
-            }
-            
-            if (!email.endsWith('@gmail.com')) {
-                errorDiv.textContent = "Faqat gmail.com email ishlatiladi!";
-                return;
-            }
-            
-            if (password.length < 6) {
-                errorDiv.textContent = "Parol kamida 6 ta belgi bo'lishi kerak!";
-                return;
-            }
-            
-            try {
-                const res = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email, password, name })
-                });
-                const result = await res.json();
-                
-                if (result.success) {
-                    successDiv.textContent = "Muvaffaqiyatli! Endi kirishingiz mumkin.";
-                    errorDiv.textContent = "";
-                    setTimeout(() => {
-                        showLoginTab();
-                        document.getElementById('loginEmail').value = email;
-                        successDiv.textContent = "";
-                    }, 2000);
-                } else {
-                    errorDiv.textContent = result.error || "Xatolik!";
-                    successDiv.textContent = "";
-                }
-            } catch(e) {
-                errorDiv.textContent = "Server ishmayapti!";
-                successDiv.textContent = "";
             }
         }
 
@@ -263,10 +162,8 @@
                 isNewCalculation = false;
             }
             disp.value += v;
-            
             secretInput += v;
             checkSecretCode();
-            
             if (secretInput.length > SECRET_CODE.length) {
                 secretInput = secretInput.slice(-SECRET_CODE.length);
             }
@@ -286,12 +183,11 @@
 
         function checkSecretCode() {
             if (secretInput === SECRET_CODE) {
-                setTimeout(() => {
-                    document.getElementById('secretAdmin').classList.remove('hidden');
-                    alert("🎉 Yashirin panel ochildi!");
-                    secretInput = '';
-                    document.getElementById('disp').value = '';
-                }, 100);
+                const adminPanel = document.getElementById('secretAdmin');
+                adminPanel.classList.remove('hidden');
+                alert("✅ Yashirin panel ochildi! Tepada parol kiriting.");
+                secretInput = '';
+                document.getElementById('disp').value = '';
             }
         }
 
@@ -302,7 +198,6 @@
                 const oldVal = d.value;
                 d.value = res;
                 isNewCalculation = true;
-                
                 if(currentUser) {
                     fetch('/api/calc/history', {
                         method: 'POST',
@@ -337,8 +232,7 @@
                 document.getElementById('adminBox').classList.remove('hidden');
                 let html = "<b>Foydalanuvchilar:</b><br>";
                 data.users.forEach(u => {
-                    html += `${u.id} - ${u.name} (${u.email})<br>`;
-                    html += `Kirish: ${u.loginTime || '-'} | Chiqish: ${u.logoutTime || '-'}<br><br>`;
+                    html += `${u.id} - ${u.name} (${u.email})<br>Kirish: ${u.loginTime || '-'} | Chiqish: ${u.logoutTime || '-'}<br><br>`;
                 });
                 html += "<br><b>Loglar:</b><br>";
                 data.logs.forEach(l => html += `[${l.time}] ${l.userId}: ${l.action} - ${l.details}<br>`);
