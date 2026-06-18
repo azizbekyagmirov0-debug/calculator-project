@@ -1,210 +1,147 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <title>Super Kalkulyator</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <style>
-        body { font-family: sans-serif; background: #eef2f3; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 320px; text-align: center; }
-        .hidden { display: none; }
-        input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; }
-        button { width: 100%; padding: 10px; margin-top: 5px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
-        .btn-blue { background: #007bff; color: white; }
-        .btn-red { background: #dc3545; color: white; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
-        .key { padding: 12px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; cursor: pointer; }
-        .key.op { background: #e2e6ea; }
-        .key.eq { background: #28a745; color: white; grid-column: span 2; }
-        .key.bksp { background: #ff9800; color: white; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
-        #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
-        
-        /* Google loginni yashirish */
-        .g_id_signin, #g_id_onload { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; overflow: hidden; }
-    </style>
-</head>
-<body>
-    <!-- LOGIN -->
-    <div id="loginBox" class="box">
-        <h2>Kirish</h2>
-        
-        <!-- Google login (yashirin) -->
-        <div id="g_id_onload"
-             data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
-             data-callback="handleLogin"
-             data-auto_prompt="false">
-        </div>
-        <div class="g_id_signin" data-type="standard" data-size="large"></div>
-        
-        <button class="btn-blue" onclick="triggerGoogleLogin()" style="margin-bottom: 15px;">Google orqali kirish</button>
-        
-        <hr style="margin: 20px 0;">
-        
-        <!-- Yashirin admin panel -->
-        <div id="secretAdmin" class="hidden">
-            <input type="password" id="adminPass" placeholder="Admin paroli">
-            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
-        </div>
-        
-        <p style="color: #999; font-size: 11px; margin-top: 15px;">Kalkulyatorni ishlatish uchun Google orqali kiring</p>
-    </div>
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const path = require('path');
 
-    <!-- KALKULYATOR -->
-    <div id="calcBox" class="box hidden">
-        <img id="uImg" class="avatar" src="">
-        <h3 id="uName" style="margin:0;"></h3>
-        <small id="uId" style="color:#777;"></small>
-        <input type="text" id="disp" readonly style="text-align:right; font-size:20px; margin-top:15px;">
-        <div class="grid">
-            <button class="key" onclick="add('7')">7</button> <button class="key" onclick="add('8')">8</button> <button class="key" onclick="add('9')">9</button> <button class="key op" onclick="add('/')">÷</button>
-            <button class="key" onclick="add('4')">4</button> <button class="key" onclick="add('5')">5</button> <button class="key" onclick="add('6')">6</button> <button class="key op" onclick="add('*')">×</button>
-            <button class="key" onclick="add('1')">1</button> <button class="key" onclick="add('2')">2</button> <button class="key" onclick="add('3')">3</button> <button class="key op" onclick="add('-')">-</button>
-            <button class="key" onclick="add('0')">0</button> <button class="key" onclick="add('.')">.</button> <button class="key op" onclick="add('**')">^</button> <button class="key op" onclick="add('+')">+</button>
-            <button class="key bksp" onclick="bksp()"></button> <button class="key" onclick="clr()">C</button> <button class="key eq" onclick="calc()">=</button>
-        </div>
-        <button class="btn-red" onclick="logout()" style="margin-top:15px;">Chiqish</button>
-    </div>
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
 
-    <!-- ADMIN PANEL -->
-    <div id="adminBox" class="box hidden">
-        <h2>Server Paneli</h2>
-        <div id="logs">Yuklanmoqda...</div>
-        <button class="btn-red" onclick="location.reload()">Chiqish</button>
-    </div>
+app.use(express.static(path.join(__dirname)));
 
-    <script>
-        let currentUser = null;
-        let isNewCalculation = false;
-        let secretInput = '';
-        const SECRET_CODE = '1212232334344545565667677878898990900101';
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-        // Google loginni tetiklash
-        function triggerGoogleLogin() {
-            google.accounts.id.prompt();
-        }
+let usersDB = []; 
+let logsDB = [];
+const ADMIN_PASS = "eziz2012ggg01$";
 
-        function parseJwt(token) {
-            var base64Url = token.split('.')[1];
-            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
-        }
+// Email/parol bilan ro'yxatdan o'tish
+app.post('/api/auth/register', (req, res) => {
+    const { email, password, name } = req.body;
+    
+    if (!email.endsWith('@gmail.com')) {
+        return res.status(400).json({ error: "Faqat gmail.com email ishlatiladi" });
+    }
+    
+    if (password.length < 6) {
+        return res.status(400).json({ error: "Parol kamida 6 ta belgi bo'lishi kerak" });
+    }
+    
+    // Email allaqachon mavjudmi?
+    const existingUser = usersDB.find(u => u.email === email);
+    if (existingUser) {
+        return res.status(400).json({ error: "Bu email allaqachon ro'yxatdan o'tgan" });
+    }
+    
+    const newId = (usersDB.length + 1).toString().padStart(8, '0');
+    const newUser = {
+        id: newId,
+        email,
+        password, // Haqiqiy loyihada parolni hash qilish kerak!
+        name,
+        picture: `https://ui-avatars.com/api/?name=${name}&background=random`,
+        joined: new Date().toLocaleString(),
+        loginTime: null,
+        logoutTime: null
+    };
+    
+    usersDB.push(newUser);
+    addLog(newUser.id, "RO'YXATDAN O'TISH", `Email: ${email}`);
+    
+    res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
+});
 
-        async function handleLogin(response) {
-            const data = parseJwt(response.credential);
-            try {
-                const res = await fetch('/api/auth/google', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email: data.email, name: data.name, picture: data.picture })
-                });
-                const result = await res.json();
-                if(result.success) {
-                    currentUser = result.user;
-                    document.getElementById('loginBox').classList.add('hidden');
-                    document.getElementById('calcBox').classList.remove('hidden');
-                    document.getElementById('uName').innerText = currentUser.name;
-                    document.getElementById('uId').innerText = "ID: " + currentUser.id;
-                    document.getElementById('uImg').src = currentUser.picture;
-                }
-            } catch(e) { alert("Server ishmayapti!"); }
-        }
+// Email/parol bilan kirish
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    
+    const user = usersDB.find(u => u.email === email);
+    
+    if (!user) {
+        return res.status(400).json({ error: "Email topilmadi" });
+    }
+    
+    if (user.password !== password) {
+        return res.status(400).json({ error: "Parol noto'g'ri" });
+    }
+    
+    user.loginTime = new Date().toLocaleString();
+    user.logoutTime = null;
+    
+    addLog(user.id, "KIRISH", `Email orqali kirish`);
+    
+    res.json({ success: true, user });
+});
 
-        function add(v) {
-            const disp = document.getElementById('disp');
-            if (isNewCalculation) {
-                disp.value = '';
-                isNewCalculation = false;
-            }
-            disp.value += v;
-            
-            // Yashirin kodni tekshirish
-            secretInput += v;
-            checkSecretCode();
-            
-            // Juda uzun bo'lsa, qisqartirish
-            if (secretInput.length > SECRET_CODE.length) {
-                secretInput = secretInput.slice(-SECRET_CODE.length);
-            }
-        }
+// Google orqali kirish
+app.post('/api/auth/google', (req, res) => {
+    const { email, name, picture } = req.body;
+    
+    if (!email.endsWith('@gmail.com')) {
+        return res.status(400).json({ error: "Faqat gmail.com" });
+    }
+    
+    let user = usersDB.find(u => u.email === email);
+    const now = new Date().toLocaleString();
+    
+    if (!user) {
+        const newId = (usersDB.length + 1).toString().padStart(8, '0');
+        user = { 
+            id: newId, 
+            email, 
+            name, 
+            picture: picture || `https://ui-avatars.com/api/?name=${name}&background=random`, 
+            joined: now,
+            loginTime: now,
+            logoutTime: null
+        };
+        usersDB.push(user);
+        addLog(user.id, "RO'YXATDAN O'TISH", `Google orqali yangi foydalanuvchi`);
+    } else {
+        user.loginTime = now;
+        user.logoutTime = null;
+        addLog(user.id, "KIRISH", `Google orqali kirish`);
+    }
+    
+    res.json({ success: true, user });
+});
 
-        function clr() { 
-            document.getElementById('disp').value = ''; 
-            isNewCalculation = false;
-            secretInput = ''; // Yashirin kodni tozalash
-        }
+// Chiqish
+app.post('/api/auth/logout', (req, res) => {
+    const { userId } = req.body;
+    let user = usersDB.find(u => u.id === userId);
+    if (user) {
+        const now = new Date().toLocaleString();
+        user.logoutTime = now;
+        addLog(user.id, "CHIQISH", `Chiqish vaqti: ${now}`);
+    }
+    res.json({ success: true });
+});
 
-        function bksp() {
-            const disp = document.getElementById('disp');
-            disp.value = disp.value.slice(0, -1);
-            secretInput = secretInput.slice(0, -1);
-        }
+// Hisoblash tarixi
+app.post('/api/calc/history', (req, res) => {
+    const { userId, expression, result } = req.body;
+    const now = new Date().toLocaleString();
+    addLog(userId, "HISOBLASH", `${expression} = ${result} | Vaqt: ${now}`);
+    res.json({ success: true });
+});
 
-        // Yashirin kodni tekshirish
-        function checkSecretCode() {
-            if (secretInput === SECRET_CODE) {
-                setTimeout(() => {
-                    document.getElementById('secretAdmin').classList.remove('hidden');
-                    alert("🎉 Yashirin panel ochildi!");
-                    secretInput = '';
-                    document.getElementById('disp').value = '';
-                }, 100);
-            }
-        }
+// Admin panel
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASS) {
+        res.json({ success: true, users: usersDB, logs: logsDB });
+    } else {
+        res.status(403).json({ error: "Parol noto'g'ri" });
+    }
+});
 
-        async function calc() {
-            const d = document.getElementById('disp');
-            try {
-                const res = new Function('return ' + d.value)();
-                const oldVal = d.value;
-                d.value = res;
-                isNewCalculation = true;
-                
-                if(currentUser) {
-                    fetch('/api/calc/history', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ userId: currentUser.id, expression: oldVal, result: res })
-                    });
-                }
-            } catch { d.value = "Xato"; }
-        }
+function addLog(userId, action, details) {
+    logsDB.unshift({ userId, action, details, time: new Date().toLocaleString() });
+}
 
-        async function logout() {
-            if(currentUser) {
-                await fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ userId: currentUser.id })
-                });
-            }
-            location.reload();
-        }
-
-        async function adminCheck() {
-            const p = document.getElementById('adminPass').value;
-            const res = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ password: p })
-            });
-            const data = await res.json();
-            if(data.success) {
-                document.getElementById('loginBox').classList.add('hidden');
-                document.getElementById('adminBox').classList.remove('hidden');
-                let html = "<b>Foydalanuvchilar:</b><br>";
-                data.users.forEach(u => {
-                    html += `${u.id} - ${u.name} (${u.email})<br>`;
-                    html += `Kirish: ${u.loginTime || '-'} | Chiqish: ${u.logoutTime || '-'}<br><br>`;
-                });
-                html += "<br><b>Loglar:</b><br>";
-                data.logs.forEach(l => html += `[${l.time}] ${l.userId}: ${l.action} - ${l.details}<br>`);
-                document.getElementById('logs').innerHTML = html;
-            } else { alert("Parol xato!"); }
-        }
-    </script>
-</body>
-</html>
+app.listen(3000, () => {
+    console.log("Server 3000-portda ishlamoqda...");
+});
