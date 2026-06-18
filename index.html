@@ -22,10 +22,21 @@
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
         .error { color: #dc3545; font-size: 12px; margin-top: 5px; }
         #g_id_onload, .g_id_signin { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-        #secretAdmin { margin-top: 15px; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; }
+        
+        /* Yashirin admin panel stili */
+        #secretAdmin {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
+    <!-- LOGIN -->
     <div id="loginBox" class="box">
         <h2>Kirish</h2>
         
@@ -38,15 +49,6 @@
         <button class="btn-green" onclick="showGoogleLogin()">Google orqali kirish</button>
         <div id="loginError" class="error"></div>
         
-        <!-- YASHIRIN PANEL - BU YERDA -->
-        <div id="secretAdmin" class="hidden">
-            <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Serverga Kirish</h4>
-            <input type="password" id="adminPass" placeholder="Admin parol">
-            <button class="btn-blue" onclick="adminCheck()">Kirish</button>
-        </div>
-        
-        <hr style="margin: 20px 0;">
-        
         <div id="g_id_onload"
              data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
              data-callback="handleLogin"
@@ -56,10 +58,19 @@
         <div class="g_id_signin" data-type="standard" data-size="large"></div>
     </div>
 
+    <!-- KALKULYATOR -->
     <div id="calcBox" class="box hidden">
         <img id="uImg" class="avatar" src="">
         <h3 id="greeting" style="margin:0; color: #007bff;"></h3>
         <small id="uId" style="color:#777;"></small>
+        
+        <!-- YASHIRIN ADMIN PANEL - KALKULYATOR ICHIDA -->
+        <div id="secretAdmin" class="hidden">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Serverga Kirish</h4>
+            <input type="password" id="adminPass" placeholder="Admin parol">
+            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
+        </div>
+        
         <input type="text" id="disp" readonly style="text-align:right; font-size:20px; margin-top:15px;">
         <div class="grid">
             <button class="key" onclick="add('7')">7</button> <button class="key" onclick="add('8')">8</button> <button class="key" onclick="add('9')">9</button> <button class="key op" onclick="add('/')">÷</button>
@@ -71,6 +82,7 @@
         <button class="btn-red" onclick="logout()" style="margin-top:15px;">Chiqish</button>
     </div>
 
+    <!-- ADMIN PANEL -->
     <div id="adminBox" class="box hidden">
         <h2>Server Paneli</h2>
         <div id="logs">Yuklanmoqda...</div>
@@ -188,6 +200,8 @@
                 alert("✅ Yashirin panel ochildi! Tepada parol kiriting.");
                 secretInput = '';
                 document.getElementById('disp').value = '';
+                // Panelga scroll qilish
+                adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
 
@@ -228,7 +242,7 @@
             });
             const data = await res.json();
             if(data.success) {
-                document.getElementById('loginBox').classList.add('hidden');
+                document.getElementById('calcBox').classList.add('hidden');
                 document.getElementById('adminBox').classList.remove('hidden');
                 let html = "<b>Foydalanuvchilar:</b><br>";
                 data.users.forEach(u => {
