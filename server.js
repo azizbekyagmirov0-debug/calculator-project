@@ -16,6 +16,59 @@ let usersDB = [];
 let logsDB = [];
 const ADMIN_PASS = "eziz2012ggg01$";
 
+// Ro'yxatdan o'tish
+app.post('/api/auth/register', (req, res) => {
+    const { email, password, name } = req.body;
+    
+    if (!email.endsWith('@gmail.com')) {
+        return res.status(400).json({ error: "Faqat gmail.com email ishlatiladi" });
+    }
+    
+    if (password.length < 6) {
+        return res.status(400).json({ error: "Parol kamida 6 ta belgi bo'lishi kerak" });
+    }
+    
+    const existingUser = usersDB.find(u => u.email === email);
+    if (existingUser) {
+        return res.status(400).json({ error: "Bu email allaqachon ro'yxatdan o'tgan" });
+    }
+    
+    const newId = (usersDB.length + 1).toString().padStart(8, '0');
+    const newUser = {
+        id: newId,
+        email,
+        password,
+        name,
+        picture: `https://ui-avatars.com/api/?name=${name}&background=random`,
+        joined: new Date().toLocaleString(),
+        loginTime: null,
+        logoutTime: null
+    };
+    
+    usersDB.push(newUser);
+    addLog(newUser.id, "RO'YXATDAN O'TISH", `Email: ${email}, Ism: ${name}`);
+    res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
+});
+
+// Kirish
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    const user = usersDB.find(u => u.email === email);
+    
+    if (!user) {
+        return res.status(400).json({ error: "Email topilmadi" });
+    }
+    
+    if (user.password !== password) {
+        return res.status(400).json({ error: "Parol noto'g'ri" });
+    }
+    
+    user.loginTime = new Date().toLocaleString();
+    user.logoutTime = null;
+    addLog(user.id, "KIRISH", `Email orqali kirish`);
+    res.json({ success: true, user });
+});
+
 // Google orqali kirish
 app.post('/api/auth/google', (req, res) => {
     const { email, name, picture } = req.body;
@@ -33,7 +86,7 @@ app.post('/api/auth/google', (req, res) => {
             id: newId, 
             email, 
             name, 
-            picture: picture || 'https://via.placeholder.com/50', 
+            picture: picture || `https://ui-avatars.com/api/?name=${name}&background=random`, 
             joined: now,
             loginTime: now,
             logoutTime: null
