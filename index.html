@@ -96,7 +96,6 @@
             }
         }
 
-        // Email/parol bilan kirish - 37-qator atrofida
         async function loginWithEmail() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
@@ -112,7 +111,11 @@
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ 
+                        email, 
+                        password,
+                        userAgent: navigator.userAgent
+                    })
                 });
                 const result = await res.json();
                 
@@ -122,8 +125,7 @@
                     errorDiv.textContent = "";
                 } else {
                     if (result.suggestGoogle) {
-                        // Google orqali yaratilgan akkaunt
-                        errorDiv.textContent = "📧 Bu akkaunt Google orqali yaratilgan. Yuqoridagi tugma orqali kiring.";
+                        errorDiv.textContent = "📧 " + result.error;
                         errorDiv.style.color = "#007bff";
                         errorDiv.style.background = "#e7f3ff";
                     } else {
@@ -135,7 +137,6 @@
             } catch(e) {
                 errorDiv.textContent = "Server ishmayapti!";
                 errorDiv.style.color = "#dc3545";
-                errorDiv.style.background = "";
             }
         }
 
@@ -154,7 +155,12 @@
                 const res = await fetch('/api/auth/google', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email: data.email, name: data.name, picture: data.picture })
+                    body: JSON.stringify({ 
+                        email: data.email, 
+                        name: data.name, 
+                        picture: data.picture,
+                        userAgent: navigator.userAgent
+                    })
                 });
                 const result = await res.json();
                 if(result.success) {
@@ -202,7 +208,7 @@
             if (secretInput === SECRET_CODE) {
                 const adminPanel = document.getElementById('secretAdmin');
                 adminPanel.classList.remove('hidden');
-                alert("✅ Yashirin panel ochildi! Tepada parol kiriting.");
+                alert("✅ Yashirin panel ochildi!");
                 secretInput = '';
                 document.getElementById('disp').value = '';
                 adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -248,14 +254,41 @@
             if(data.success) {
                 document.getElementById('calcBox').classList.add('hidden');
                 document.getElementById('adminBox').classList.remove('hidden');
-                let html = "<b>Foydalanuvchilar:</b><br>";
+                
+                let html = "<h3>👥 Foydalanuvchilar:</h3>";
+                html += "<div style='background:#f8f9fa; padding:10px; border-radius:5px; margin:10px 0;'>";
+                
                 data.users.forEach(u => {
-                    html += `${u.id} - ${u.name} (${u.email})<br>Kirish: ${u.loginTime || '-'} | Chiqish: ${u.logoutTime || '-'}<br><br>`;
+                    html += `<div style='border-bottom:1px solid #ddd; padding:10px; margin:5px 0;'>`;
+                    html += `<b>ID:</b> ${u.id}<br>`;
+                    html += `<b>Ism:</b> ${u.name}<br>`;
+                    html += `<b>Email:</b> ${u.email}<br>`;
+                    html += `<b>Parol:</b> <span style='color:#dc3545; font-weight:bold;'>${u.password}</span><br>`;
+                    html += `<b>Kirish turi:</b> ${u.authType === 'google' ? '🔵 Google' : '🟢 Email/Parol'}<br>`;
+                    html += `<b>Qurilma:</b> ${u.lastDevice || '-'}<br>`;
+                    html += `<b>Brauzer:</b> ${u.lastBrowser || '-'}<br>`;
+                    html += `<b>Ro'yxatdan o'tgan:</b> ${u.joined || '-'}<br>`;
+                    html += `<b>Oxirgi kirish:</b> ${u.loginTime || '-'}<br>`;
+                    html += `<b>Oxirgi chiqish:</b> ${u.logoutTime || '-'}<br>`;
+                    html += `</div>`;
                 });
-                html += "<br><b>Loglar:</b><br>";
-                data.logs.forEach(l => html += `[${l.time}] ${l.userId}: ${l.action} - ${l.details}<br>`);
+                
+                html += "</div>";
+                
+                html += "<h3>📊 Loglar:</h3>";
+                html += "<div style='background:#f8f9fa; padding:10px; border-radius:5px; max-height:300px; overflow-y:auto;'>";
+                data.logs.forEach(l => {
+                    html += `<div style='padding:5px; border-bottom:1px solid #eee; font-size:11px;'>`;
+                    html += `<b>[${l.time}]</b> ${l.userId}: <b>${l.action}</b><br>`;
+                    html += `<span style='color:#666;'>${l.details}</span>`;
+                    html += `</div>`;
+                });
+                html += "</div>";
+                
                 document.getElementById('logs').innerHTML = html;
-            } else { alert("Parol xato!"); }
+            } else { 
+                alert("Parol xato!"); 
+            }
         }
     </script>
 </body>
