@@ -6,7 +6,6 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
 app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
@@ -17,7 +16,7 @@ let usersDB = [];
 let logsDB = [];
 const ADMIN_PASS = "eziz2012ggg01$";
 
-// Email/parol bilan ro'yxatdan o'tish
+// Ro'yxatdan o'tish
 app.post('/api/auth/register', (req, res) => {
     const { email, password, name } = req.body;
     
@@ -29,7 +28,6 @@ app.post('/api/auth/register', (req, res) => {
         return res.status(400).json({ error: "Parol kamida 6 ta belgi bo'lishi kerak" });
     }
     
-    // Email allaqachon mavjudmi?
     const existingUser = usersDB.find(u => u.email === email);
     if (existingUser) {
         return res.status(400).json({ error: "Bu email allaqachon ro'yxatdan o'tgan" });
@@ -39,7 +37,7 @@ app.post('/api/auth/register', (req, res) => {
     const newUser = {
         id: newId,
         email,
-        password, // Haqiqiy loyihada parolni hash qilish kerak!
+        password,
         name,
         picture: `https://ui-avatars.com/api/?name=${name}&background=random`,
         joined: new Date().toLocaleString(),
@@ -49,14 +47,12 @@ app.post('/api/auth/register', (req, res) => {
     
     usersDB.push(newUser);
     addLog(newUser.id, "RO'YXATDAN O'TISH", `Email: ${email}`);
-    
     res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
 });
 
-// Email/parol bilan kirish
+// Kirish
 app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
-    
     const user = usersDB.find(u => u.email === email);
     
     if (!user) {
@@ -69,13 +65,11 @@ app.post('/api/auth/login', (req, res) => {
     
     user.loginTime = new Date().toLocaleString();
     user.logoutTime = null;
-    
     addLog(user.id, "KIRISH", `Email orqali kirish`);
-    
     res.json({ success: true, user });
 });
 
-// Google orqali kirish
+// Google login
 app.post('/api/auth/google', (req, res) => {
     const { email, name, picture } = req.body;
     
