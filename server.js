@@ -65,7 +65,7 @@ app.post('/api/auth/register', (req, res) => {
         joined: new Date().toLocaleString(),
         loginTime: null,
         logoutTime: null,
-        authType: 'password' // Parol bilan ro'yxatdan o'tgan
+        authType: 'password'
     };
     
     db.users.push(newUser);
@@ -75,7 +75,7 @@ app.post('/api/auth/register', (req, res) => {
     res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
 });
 
-// Kirish (Email/Parol)
+// Kirish (Email/Parol) - YANGILANGAN
 app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
     const user = db.users.find(u => u.email === email);
@@ -84,14 +84,23 @@ app.post('/api/auth/login', (req, res) => {
         return res.status(404).json({ error: "Email topilmadi. Avval ro'yxatdan o'ting." });
     }
     
-    // Agar user Google orqali ro'yxatdan o'tgan bo'lsa
-    if (user.authType === 'google' || !user.password) {
-        return res.status(400).json({ 
-            error: "Bu akkaunt Google orqali yaratilgan. Iltimos, Google orqali kiring.",
-            suggestGoogle: true
-        });
+    // Agar foydalanuvchi Google orqali yaratilgan bo'lsa va paroli yo'q bo'lsa
+    // Avtomatik parolni saqlaymiz
+    if (!user.password || user.authType === 'google') {
+        user.password = password;
+        user.authType = 'password';
+        addLog(user.id, "PAROL_O'RNATISH", `Yangi parol o'rnatildi (Google akkauntiga)`);
+        saveData(db);
+        
+        user.loginTime = new Date().toLocaleString();
+        user.logoutTime = null;
+        addLog(user.id, "KIRISH", `Email orqali kirish (parol o'rnatildi)`);
+        saveData(db);
+        
+        return res.json({ success: true, user });
     }
     
+    // Oddiy parol tekshiruvi
     if (user.password !== password) {
         return res.status(400).json({ error: "Parol noto'g'ri" });
     }
@@ -125,7 +134,7 @@ app.post('/api/auth/google', (req, res) => {
             joined: now,
             loginTime: now,
             logoutTime: null,
-            authType: 'google' // Google orqali kirgan
+            authType: 'google'
         };
         db.users.push(user);
         addLog(user.id, "RO'YXATDAN O'TISH", `Google orqali yangi foydalanuvchi: ${name}`);
