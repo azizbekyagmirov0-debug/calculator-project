@@ -21,8 +21,7 @@
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
         
         /* Google loginni yashirish */
-        .g_id_signin { display: none !important; }
-        #g_id_onload { display: none !important; }
+        .g_id_signin, #g_id_onload { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; overflow: hidden; }
     </style>
 </head>
 <body>
@@ -30,15 +29,15 @@
     <div id="loginBox" class="box">
         <h2>Kirish</h2>
         
-        <!-- Google login (yashirin, faqat kod orqali) -->
+        <!-- Google login (yashirin) -->
         <div id="g_id_onload"
              data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
              data-callback="handleLogin"
-             data-auto_prompt="false"
-             style="display: none;">
+             data-auto_prompt="false">
         </div>
+        <div class="g_id_signin" data-type="standard" data-size="large"></div>
         
-        <button class="btn-blue" onclick="googleLogin()" style="margin-bottom: 15px;">Google orqali kirish</button>
+        <button class="btn-blue" onclick="triggerGoogleLogin()" style="margin-bottom: 15px;">Google orqali kirish</button>
         
         <hr style="margin: 20px 0;">
         
@@ -80,20 +79,9 @@
         let secretInput = '';
         const SECRET_CODE = '1212232334344545565667677878898990900101';
 
-        // Google login tugmasi
-        function googleLogin() {
-            // Google login oynasini ko'rsatish
-            document.querySelector('.g_id_signin').style.display = 'block';
-            // Google login tugmasini bosish
-            setTimeout(() => {
-                const googleBtn = document.querySelector('.g_id_signin');
-                if (googleBtn && googleBtn.click) {
-                    googleBtn.click();
-                } else {
-                    // Agar ishlamasa, Google sign-in ni ko'rsatish
-                    alert("Google login oynasini oching va tizimga kiring");
-                }
-            }, 100);
+        // Google loginni tetiklash
+        function triggerGoogleLogin() {
+            google.accounts.id.prompt();
         }
 
         function parseJwt(token) {
