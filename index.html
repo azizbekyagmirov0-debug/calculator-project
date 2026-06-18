@@ -6,7 +6,7 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body { font-family: sans-serif; background: #eef2f3; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 320px; text-align: center; position: relative; }
         .hidden { display: none; }
         input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; }
         button { width: 100%; padding: 10px; margin-top: 5px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
@@ -22,6 +22,7 @@
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
         .error { color: #dc3545; font-size: 12px; margin-top: 5px; }
         
+        /* Google loginni butunlay yashirish */
         #g_id_onload, .g_id_signin { 
             position: absolute; 
             left: -9999px; 
@@ -29,6 +30,15 @@
             height: 1px; 
             overflow: hidden; 
         }
+
+        /* Yashirin panel uchun maxsus stil */
+        #secretAdmin {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -47,14 +57,14 @@
         <button class="btn-green" onclick="showGoogleLogin()">Google orqali kirish</button>
         <div id="loginError" class="error"></div>
         
-        <hr style="margin: 20px 0;">
-        
-        <!-- Yashirin admin panel -->
+        <!-- YASHIRIN PANEL ENDI SHU YERDA (TEPADA) -->
         <div id="secretAdmin" class="hidden">
-            <h3>Serverga Kirish</h3>
-            <input type="password" id="adminPass" placeholder="Admin paroli">
-            <button class="btn-blue" onclick="adminCheck()">Kirish</button>
+            <h4 style="margin: 5px 0; color: #333;">🔒 Server Paroli</h4>
+            <input type="password" id="adminPass" placeholder="Parolni kiriting">
+            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
         </div>
+        
+        <hr style="margin: 20px 0;">
         
         <!-- Google login (yashirin) -->
         <div id="g_id_onload"
@@ -104,7 +114,7 @@
                 });
                 google.accounts.id.prompt((notification) => {
                     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        alert("Iltimos, brauzer sozlamalaridan popup ruxsatini yoqing yoki boshqa brauzerda sinab ko'ring.");
+                        alert("Iltimos, brauzer sozlamalaridan popup ruxsatini yoqing.");
                     }
                 });
             } else {
@@ -207,11 +217,15 @@
         function checkSecretCode() {
             if (secretInput === SECRET_CODE) {
                 setTimeout(() => {
-                    document.getElementById('secretAdmin').classList.remove('hidden');
+                    const adminPanel = document.getElementById('secretAdmin');
+                    adminPanel.classList.remove('hidden');
+                    
+                    // Ekranni yuqoriga siljitish (scroll)
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
                     alert("🎉 Yashirin panel ochildi!");
                     secretInput = '';
                     document.getElementById('disp').value = '';
-                    document.getElementById('secretAdmin').scrollIntoView({ behavior: 'smooth' });
                 }, 100);
             }
         }
