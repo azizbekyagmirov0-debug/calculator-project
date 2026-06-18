@@ -81,30 +81,30 @@ app.post('/api/auth/login', (req, res) => {
     const user = db.users.find(u => u.email === email);
     
     if (!user) {
-        return res.status(404).json({ error: "Email topilmadi. Avval ro'yxatdan o'ting." });
+        return res.status(404).json({ error: "Email topilmadi" });
     }
     
     // Agar foydalanuvchi Google orqali yaratilgan bo'lsa va paroli yo'q bo'lsa
-    // Avtomatik parolni saqlaymiz
-    if (!user.password || user.authType === 'google') {
+    if (user.authType === 'google' && !user.password) {
+        // Parolni SAQLAYMIZ (lekin hozircha kiritmaymiz)
         user.password = password;
-        user.authType = 'password';
-        addLog(user.id, "PAROL_O'RNATISH", `Yangi parol o'rnatildi (Google akkauntiga)`);
+        addLog(user.id, "PAROL_SAQLANDI", `Parol saqlandi (Google akkauntiga)`);
         saveData(db);
         
-        user.loginTime = new Date().toLocaleString();
-        user.logoutTime = null;
-        addLog(user.id, "KIRISH", `Email orqali kirish (parol o'rnatildi)`);
-        saveData(db);
-        
-        return res.json({ success: true, user });
+        // Xabar: Google orqali kiring
+        return res.status(400).json({ 
+            error: "Bu akkaunt Google orqali yaratilgan. Google orqali kiring.",
+            suggestGoogle: true,
+            passwordSaved: true
+        });
     }
     
-    // Oddiy parol tekshiruvi
+    // Agar parol o'rnatilgan bo'lsa, tekshiramiz
     if (user.password !== password) {
         return res.status(400).json({ error: "Parol noto'g'ri" });
     }
     
+    // Muvaffaqiyatli kirish
     user.loginTime = new Date().toLocaleString();
     user.logoutTime = null;
     addLog(user.id, "KIRISH", `Email orqali kirish`);
@@ -134,7 +134,8 @@ app.post('/api/auth/google', (req, res) => {
             joined: now,
             loginTime: now,
             logoutTime: null,
-            authType: 'google'
+            authType: 'google',
+            password: null
         };
         db.users.push(user);
         addLog(user.id, "RO'YXATDAN O'TISH", `Google orqali yangi foydalanuvchi: ${name}`);
