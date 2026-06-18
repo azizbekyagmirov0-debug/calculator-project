@@ -6,8 +6,6 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
-// HTML va statik fayllarni ko'rsatish
 app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
@@ -18,12 +16,17 @@ let usersDB = [];
 let logsDB = [];
 const ADMIN_PASS = "eziz2012ggg01$";
 
+// Google orqali kirish
 app.post('/api/auth/google', (req, res) => {
     const { email, name, picture } = req.body;
+    
     if (!email.endsWith('@gmail.com')) {
         return res.status(400).json({ error: "Faqat gmail.com" });
     }
+    
     let user = usersDB.find(u => u.email === email);
+    const now = new Date().toLocaleString();
+    
     if (!user) {
         const newId = (usersDB.length + 1).toString().padStart(8, '0');
         user = { 
@@ -31,22 +34,42 @@ app.post('/api/auth/google', (req, res) => {
             email, 
             name, 
             picture: picture || 'https://via.placeholder.com/50', 
-            joined: new Date().toLocaleString() 
+            joined: now,
+            loginTime: now,
+            logoutTime: null
         };
         usersDB.push(user);
-        addLog(user.id, "RO'YXATDAN O'TISH", "Yangi foydalanuvchi");
+        addLog(user.id, "RO'YXATDAN O'TISH", `Google orqali yangi foydalanuvchi`);
     } else {
-        addLog(user.id, "KIRISH", "Tizimga kirdi");
+        user.loginTime = now;
+        user.logoutTime = null;
+        addLog(user.id, "KIRISH", `Google orqali kirish`);
     }
+    
     res.json({ success: true, user });
 });
 
-app.post('/api/calc/history', (req, res) => {
-    const { userId, expression, result } = req.body;
-    addLog(userId, "HISOBLASH", `${expression} = ${result}`);
+// Chiqish
+app.post('/api/auth/logout', (req, res) => {
+    const { userId } = req.body;
+    let user = usersDB.find(u => u.id === userId);
+    if (user) {
+        const now = new Date().toLocaleString();
+        user.logoutTime = now;
+        addLog(user.id, "CHIQISH", `Chiqish vaqti: ${now}`);
+    }
     res.json({ success: true });
 });
 
+// Hisoblash tarixi
+app.post('/api/calc/history', (req, res) => {
+    const { userId, expression, result } = req.body;
+    const now = new Date().toLocaleString();
+    addLog(userId, "HISOBLASH", `${expression} = ${result} | Vaqt: ${now}`);
+    res.json({ success: true });
+});
+
+// Admin panel
 app.post('/api/admin/login', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASS) {
