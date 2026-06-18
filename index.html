@@ -20,18 +20,9 @@
         .key.bksp { background: #ff9800; color: white; }
         .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
         #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
-        .error { color: #dc3545; font-size: 12px; margin-top: 5px; }
+        .error { font-size: 12px; margin-top: 5px; padding: 8px; border-radius: 4px; }
         #g_id_onload, .g_id_signin { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-        
-        /* Yashirin admin panel stili */
-        #secretAdmin {
-            margin-top: 15px;
-            padding: 15px;
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            animation: fadeIn 0.5s;
-        }
+        #secretAdmin { margin-top: 15px; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -64,7 +55,7 @@
         <h3 id="greeting" style="margin:0; color: #007bff;"></h3>
         <small id="uId" style="color:#777;"></small>
         
-        <!-- YASHIRIN ADMIN PANEL - KALKULYATOR ICHIDA -->
+        <!-- YASHIRIN ADMIN PANEL -->
         <div id="secretAdmin" class="hidden">
             <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Serverga Kirish</h4>
             <input type="password" id="adminPass" placeholder="Admin parol">
@@ -105,6 +96,7 @@
             }
         }
 
+        // Email/parol bilan kirish - 37-qator atrofida
         async function loginWithEmail() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
@@ -112,6 +104,7 @@
             
             if (!email || !password) {
                 errorDiv.textContent = "Email va parolni kiriting!";
+                errorDiv.style.color = "#dc3545";
                 return;
             }
             
@@ -126,11 +119,23 @@
                 if (result.success) {
                     currentUser = result.user;
                     showCalculator();
+                    errorDiv.textContent = "";
                 } else {
-                    errorDiv.textContent = "Gmail topilmadi! Google orqali kiring.";
+                    if (result.suggestGoogle) {
+                        // Google orqali yaratilgan akkaunt
+                        errorDiv.textContent = "📧 Bu akkaunt Google orqali yaratilgan. Yuqoridagi tugma orqali kiring.";
+                        errorDiv.style.color = "#007bff";
+                        errorDiv.style.background = "#e7f3ff";
+                    } else {
+                        errorDiv.textContent = result.error || "Xatolik!";
+                        errorDiv.style.color = "#dc3545";
+                        errorDiv.style.background = "";
+                    }
                 }
             } catch(e) {
                 errorDiv.textContent = "Server ishmayapti!";
+                errorDiv.style.color = "#dc3545";
+                errorDiv.style.background = "";
             }
         }
 
@@ -200,7 +205,6 @@
                 alert("✅ Yashirin panel ochildi! Tepada parol kiriting.");
                 secretInput = '';
                 document.getElementById('disp').value = '';
-                // Panelga scroll qilish
                 adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }

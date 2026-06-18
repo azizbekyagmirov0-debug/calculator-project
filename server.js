@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -12,11 +13,32 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-let usersDB = []; 
-let logsDB = [];
+const DATA_FILE = 'data.json';
 const ADMIN_PASS = "eziz2012ggg01$";
 
-// Ro'yxatdan o'tish
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const data = fs.readFileSync(DATA_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (e) {
+        console.error("Ma'lumotlarni o'qishda xatolik:", e);
+    }
+    return { users: [], logs: [] };
+}
+
+function saveData(data) {
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (e) {
+        console.error("Ma'lumotlarni saqlashda xatolik:", e);
+    }
+}
+
+let db = loadData();
+
+// Ro'yxatdan o'tish (Email/Parol)
 app.post('/api/auth/register', (req, res) => {
     const { email, password, name } = req.body;
     
@@ -28,12 +50,12 @@ app.post('/api/auth/register', (req, res) => {
         return res.status(400).json({ error: "Parol kamida 6 ta belgi bo'lishi kerak" });
     }
     
-    const existingUser = usersDB.find(u => u.email === email);
+    const existingUser = db.users.find(u => u.email === email);
     if (existingUser) {
         return res.status(400).json({ error: "Bu email allaqachon ro'yxatdan o'tgan" });
     }
     
-    const newId = (usersDB.length + 1).toString().padStart(8, '0');
+    const newId = (db.users.length + 1).toString().padStart(8, '0');
     const newUser = {
         id: newId,
         email,
@@ -42,21 +64,32 @@ app.post('/api/auth/register', (req, res) => {
         picture: `https://ui-avatars.com/api/?name=${name}&background=random`,
         joined: new Date().toLocaleString(),
         loginTime: null,
-        logoutTime: null
+        logoutTime: null,
+        authType: 'password' // Parol bilan ro'yxatdan o'tgan
     };
     
-    usersDB.push(newUser);
+    db.users.push(newUser);
     addLog(newUser.id, "RO'YXATDAN O'TISH", `Email: ${email}, Ism: ${name}`);
+    saveData(db);
+    
     res.json({ success: true, message: "Muvaffaqiyatli ro'yxatdan o'tdingiz!" });
 });
 
-// Kirish (email/parol)
+// Kirish (Email/Parol)
 app.post('/api/auth/login', (req, res) => {
     const { email, password } = req.body;
-    const user = usersDB.find(u => u.email === email);
+    const user = db.users.find(u => u.email === email);
     
     if (!user) {
-        return res.status(404).json({ error: "Email topilmadi" });
+        return res.status(404).json({ error: "Email topilmadi. Avval ro'yxatdan o'ting." });
+    }
+    
+    // Agar user Google orqali ro'yxatdan o'tgan bo'lsa
+    if (user.authType === 'google' || !user.password) {
+        return res.status(400).json({ 
+            error: "Bu akkaunt Google orqali yaratilgan. Iltimos, Google orqali kiring.",
+            suggestGoogle: true
+        });
     }
     
     if (user.password !== password) {
@@ -66,6 +99,8 @@ app.post('/api/auth/login', (req, res) => {
     user.loginTime = new Date().toLocaleString();
     user.logoutTime = null;
     addLog(user.id, "KIRISH", `Email orqali kirish`);
+    saveData(db);
+    
     res.json({ success: true, user });
 });
 
@@ -77,11 +112,11 @@ app.post('/api/auth/google', (req, res) => {
         return res.status(400).json({ error: "Faqat gmail.com" });
     }
     
-    let user = usersDB.find(u => u.email === email);
+    let user = db.users.find(u => u.email === email);
     const now = new Date().toLocaleString();
     
     if (!user) {
-        const newId = (usersDB.length + 1).toString().padStart(8, '0');
+        const newId = (db.users.length + 1).toString().padStart(8, '0');
         user = { 
             id: newId, 
             email, 
@@ -89,27 +124,30 @@ app.post('/api/auth/google', (req, res) => {
             picture: picture || `https://ui-avatars.com/api/?name=${name}&background=random`, 
             joined: now,
             loginTime: now,
-            logoutTime: null
+            logoutTime: null,
+            authType: 'google' // Google orqali kirgan
         };
-        usersDB.push(user);
-        addLog(user.id, "RO'YXATDAN O'TISH", `Google orqali yangi foydalanuvchi`);
+        db.users.push(user);
+        addLog(user.id, "RO'YXATDAN O'TISH", `Google orqali yangi foydalanuvchi: ${name}`);
     } else {
         user.loginTime = now;
         user.logoutTime = null;
-        addLog(user.id, "KIRISH", `Google orqali kirish`);
+        addLog(user.id, "KIRISH", `Google orqali kirish: ${name}`);
     }
     
+    saveData(db);
     res.json({ success: true, user });
 });
 
 // Chiqish
 app.post('/api/auth/logout', (req, res) => {
     const { userId } = req.body;
-    let user = usersDB.find(u => u.id === userId);
+    let user = db.users.find(u => u.id === userId);
     if (user) {
         const now = new Date().toLocaleString();
         user.logoutTime = now;
         addLog(user.id, "CHIQISH", `Chiqish vaqti: ${now}`);
+        saveData(db);
     }
     res.json({ success: true });
 });
@@ -119,6 +157,7 @@ app.post('/api/calc/history', (req, res) => {
     const { userId, expression, result } = req.body;
     const now = new Date().toLocaleString();
     addLog(userId, "HISOBLASH", `${expression} = ${result} | Vaqt: ${now}`);
+    saveData(db);
     res.json({ success: true });
 });
 
@@ -126,16 +165,21 @@ app.post('/api/calc/history', (req, res) => {
 app.post('/api/admin/login', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASS) {
-        res.json({ success: true, users: usersDB, logs: logsDB });
+        const recentLogs = db.logs.slice(0, 100);
+        res.json({ success: true, users: db.users, logs: recentLogs });
     } else {
         res.status(403).json({ error: "Parol noto'g'ri" });
     }
 });
 
 function addLog(userId, action, details) {
-    logsDB.unshift({ userId, action, details, time: new Date().toLocaleString() });
+    db.logs.unshift({ userId, action, details, time: new Date().toLocaleString() });
+    if (db.logs.length > 1000) {
+        db.logs = db.logs.slice(0, 1000);
+    }
 }
 
 app.listen(3000, () => {
     console.log("Server 3000-portda ishlamoqda...");
+    console.log(`Ma'lumotlar ${DATA_FILE} fayliga saqlanmoqda.`);
 });
