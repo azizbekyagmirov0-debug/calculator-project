@@ -15,12 +15,18 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// MongoDB ga ulanish
+// MongoDB ga ulanish - timeout ko'paytirildi
 const MONGODB_URI = 'mongodb+srv://admin:gulsanam2012@cluster0.nhjfldo.mongodb.net/calculator?retryWrites=true&w=majority&appName=Cluster0';
 
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 30000, // 30 soniya kutish
+    connectTimeoutMS: 30000
+})
     .then(() => console.log('✅ MongoDB ga muvaffaqiyatli ulandi!'))
-    .catch(err => console.error('❌ MongoDB xatolik:', err));
+    .catch(err => {
+        console.error('❌ MongoDB xatolik:', err.message);
+        console.log('️ MongoDB ga ulanishda muammo. Internet yoki Atlas sozlamalarini tekshiring.');
+    });
 
 // MODELLAR
 const userSchema = new mongoose.Schema({
@@ -59,12 +65,14 @@ const EmailCode = mongoose.model('EmailCode', emailCodeSchema);
 // SOZLAMALAR
 const ADMIN_PASS = "eziz2012ggg01$";
 
-// Email yuborish
+// Email yuborish - YANGI APP PASSWORD
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
         user: 'azizbekyagmirov0@gmail.com',
-        pass: 'jyhnbpszqfldod' // Bo'shliqsiz yozing
+        pass: 'dtsacorvyjtuaarn'  // YANGI APP PASSWORD
     }
 });
 
@@ -101,6 +109,8 @@ function getDeviceInfo(userAgent) {
 }
 
 // API ENDPOINTLAR
+
+// Emailga kod yuborish
 app.post('/api/auth/send-code', async (req, res) => {
     const { email } = req.body;
     if (!email.endsWith('@gmail.com')) {
@@ -113,28 +123,32 @@ app.post('/api/auth/send-code', async (req, res) => {
         await transporter.sendMail({
             from: 'azizbekyagmirov0@gmail.com',
             to: email,
-            subject: 'Tasdiqlash kodi - Kalkulyator',
-            text: `Sizning tasdiqlash kodingiz: ${code}\n\nBu kodni hech kimga bermang!`
+            subject: '🔐 Tasdiqlash kodi - Kalkulyator',
+            text: `Sizning tasdiqlash kodingiz: ${code}\n\nBu kodni hech kimga bermang!\n\nAgar siz so'ramagan bo'lsangiz, bu xabarni e'tiborsiz qoldiring.`
         });
         
         await EmailCode.deleteMany({ email });
         await EmailCode.create({ email, code, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
         
-        res.json({ success: true, message: "Kod yuborildi!" });
+        console.log(`✅ Kod yuborildi: ${email} - ${code}`);
+        res.json({ success: true, message: "Kod yuborildi! Emailingizni tekshiring (Spam papkasini ham!)" });
     } catch (e) {
-        console.error("Email xatolik:", e);
-        res.status(500).json({ error: "Email yuborishda xatolik" });
+        console.error("❌ Email xatolik:", e.message);
+        res.status(500).json({ error: "Email yuborishda xatolik: " + e.message });
     }
 });
 
+// Kodni tekshirish
 app.post('/api/auth/verify-code', async (req, res) => {
     const { email, code, name, userAgent } = req.body;
     
     const record = await EmailCode.findOne({ email, code });
-    if (!record) return res.status(400).json({ error: "Kod noto'g'ri" });
+    if (!record) {
+        return res.status(400).json({ error: "Kod noto'g'ri" });
+    }
     if (record.expiresAt < new Date()) {
         await EmailCode.deleteOne({ _id: record._id });
-        return res.status(400).json({ error: "Kod eskirgan" });
+        return res.status(400).json({ error: "Kod eskirgan. Qayta so'rang." });
     }
     
     const deviceInfo = getDeviceInfo(userAgent);
@@ -159,6 +173,7 @@ app.post('/api/auth/verify-code', async (req, res) => {
         });
         
         await addLog(user.id, "RO'YXATDAN O'TISH", `Email kod orqali - ${deviceInfo.device}`);
+        console.log(`✅ Yangi foydalanuvchi: ${user.id} - ${email}`);
     } else {
         user.loginTime = now;
         user.logoutTime = null;
@@ -166,18 +181,24 @@ app.post('/api/auth/verify-code', async (req, res) => {
         user.lastBrowser = `${deviceInfo.browser} ${deviceInfo.version}`;
         await user.save();
         await addLog(user.id, "KIRISH", `Email kod orqali - ${deviceInfo.device}`);
+        console.log(`✅ Kirish: ${user.id} - ${email}`);
     }
     
     await EmailCode.deleteOne({ _id: record._id });
     res.json({ success: true, user });
 });
 
+// Parol o'rnatish
 app.post('/api/auth/set-password', async (req, res) => {
     const { email, password, userAgent } = req.body;
-    if (password.length < 6) return res.status(400).json({ error: "Parol kamida 6 ta belgi" });
+    if (password.length < 6) {
+        return res.status(400).json({ error: "Parol kamida 6 ta belgi bo'lishi kerak" });
+    }
     
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "Foydalanuvchi topilmadi" });
+    if (!user) {
+        return res.status(404).json({ error: "Foydalanuvchi topilmadi" });
+    }
     
     const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
@@ -185,20 +206,24 @@ app.post('/api/auth/set-password', async (req, res) => {
     await user.save();
     await addLog(user.id, "PAROL_O'RNATISH", `Parol o'rnatildi`);
     
-    res.json({ success: true, message: "Parol o'rnatildi!" });
+    console.log(`✅ Parol o'rnatildi: ${email}`);
+    res.json({ success: true, message: "Parol muvaffaqiyatli o'rnatildi!" });
 });
 
+// Email/Parol bilan kirish
 app.post('/api/auth/login', async (req, res) => {
     const { email, password, userAgent } = req.body;
     const user = await User.findOne({ email });
     
-    if (!user) return res.status(404).json({ error: "Email topilmadi" });
+    if (!user) {
+        return res.status(404).json({ error: "Email topilmadi" });
+    }
     
     const deviceInfo = getDeviceInfo(userAgent);
     
     if (!user.password) {
         return res.status(400).json({ 
-            error: "Bu akkaunt uchun parol o'rnatilmagan. Parol o'rnating yoki Google orqali kiring.",
+            error: "Bu akkaunt uchun parol o'rnatilmagan. Iltimos, parol o'rnating yoki Google orqali kiring.",
             needPassword: true
         });
     }
@@ -216,12 +241,16 @@ app.post('/api/auth/login', async (req, res) => {
     await user.save();
     await addLog(user.id, "KIRISH", `Email orqali - ${deviceInfo.device} (${deviceInfo.browser})`);
     
+    console.log(`✅ Kirish (parol): ${user.id} - ${email}`);
     res.json({ success: true, user });
 });
 
+// Google orqali kirish
 app.post('/api/auth/google', async (req, res) => {
     const { email, name, picture, userAgent } = req.body;
-    if (!email.endsWith('@gmail.com')) return res.status(400).json({ error: "Faqat gmail.com" });
+    if (!email.endsWith('@gmail.com')) {
+        return res.status(400).json({ error: "Faqat gmail.com" });
+    }
     
     let user = await User.findOne({ email });
     const now = new Date();
@@ -243,6 +272,7 @@ app.post('/api/auth/google', async (req, res) => {
             joined: now
         });
         await addLog(user.id, "RO'YXATDAN O'TISH", `Google - ${deviceInfo.device}`);
+        console.log(`✅ Yangi foydalanuvchi (Google): ${user.id} - ${email}`);
     } else {
         user.loginTime = now;
         user.logoutTime = null;
@@ -250,11 +280,13 @@ app.post('/api/auth/google', async (req, res) => {
         user.lastBrowser = `${deviceInfo.browser} ${deviceInfo.version}`;
         await user.save();
         await addLog(user.id, "KIRISH", `Google - ${deviceInfo.device}`);
+        console.log(`✅ Kirish (Google): ${user.id} - ${email}`);
     }
     
     res.json({ success: true, user });
 });
 
+// Chiqish
 app.post('/api/auth/logout', async (req, res) => {
     const { userId } = req.body;
     const user = await User.findOne({ id: userId });
@@ -262,30 +294,47 @@ app.post('/api/auth/logout', async (req, res) => {
         user.logoutTime = new Date();
         await user.save();
         await addLog(user.id, "CHIQISH", `Chiqish`);
+        console.log(` Chiqish: ${userId}`);
     }
     res.json({ success: true });
 });
 
+// Hisoblash tarixi
 app.post('/api/calc/history', async (req, res) => {
     const { userId, expression, result } = req.body;
     await addLog(userId, "HISOBLASH", `${expression} = ${result}`);
     res.json({ success: true });
 });
 
+// Admin panel
 app.post('/api/admin/login', async (req, res) => {
     const { password } = req.body;
-    if (password !== ADMIN_PASS) return res.status(403).json({ error: "Parol noto'g'ri" });
+    if (password !== ADMIN_PASS) {
+        return res.status(403).json({ error: "Parol noto'g'ri" });
+    }
     
     const users = await User.find({}).sort({ joined: -1 });
     const logs = await Log.find({}).sort({ time: -1 }).limit(100);
+    
+    console.log(`🔐 Admin kirish`);
     res.json({ success: true, users, logs });
 });
 
+// Log qo'shish
 async function addLog(userId, action, details) {
-    await Log.create({ userId, action, details, time: new Date() });
+    try {
+        await Log.create({ userId, action, details, time: new Date() });
+    } catch (e) {
+        console.error('Log yozishda xatolik:', e.message);
+    }
 }
 
-app.listen(3000, () => {
-    console.log("Server 3000-portda ishlamoqda...");
-    console.log("✅ MongoDB bilan ishlayapti!");
+// Serverni ishga tushirish
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log('🚀 Server ishga tushdi!');
+    console.log(` Port: ${PORT}`);
+    console.log('✅ MongoDB bilan ishlayapti!');
+    console.log('📧 Email xizmati faol!');
+    console.log(`🌐 Mahalliy: http://localhost:${PORT}`);
 });
