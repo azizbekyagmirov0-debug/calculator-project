@@ -2,44 +2,238 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>Super Kalkulyator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Kalkulyator - MongoDB</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        body { font-family: sans-serif; background: #eef2f3; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 20px;
+        }
+        .box { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h2 { color: #333; margin-bottom: 25px; font-size: 28px; }
         .hidden { display: none !important; }
-        input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; }
-        button { width: 100%; padding: 10px; margin-top: 5px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
-        .btn-blue { background: #007bff; color: white; }
-        .btn-green { background: #28a745; color: white; }
-        .btn-red { background: #dc3545; color: white; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
-        .key { padding: 12px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; cursor: pointer; }
-        .key.op { background: #e2e6ea; }
-        .key.eq { background: #28a745; color: white; grid-column: span 2; }
-        .key.bksp { background: #ff9800; color: white; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
-        #logs { max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; background: #f9f9f9; padding: 5px; border: 1px solid #eee; }
-        .error { font-size: 12px; margin-top: 5px; padding: 8px; border-radius: 4px; }
+        input { 
+            width: 100%; 
+            padding: 12px 15px; 
+            margin: 10px 0; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 10px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: bold;
+            font-size: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .btn-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .btn-red { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white; }
+        .btn-orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+            margin-top: 20px; 
+        }
+        .key { 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 10px; 
+            font-size: 18px; 
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .key:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+        .key.op { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; }
+        .key.eq { 
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
+            color: white; 
+            grid-column: span 2;
+            border: none;
+        }
+        .key.bksp { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; }
+        .avatar { 
+            width: 70px; 
+            height: 70px; 
+            border-radius: 50%; 
+            margin-bottom: 10px;
+            border: 3px solid #667eea;
+        }
+        #logs { 
+            max-height: 200px; 
+            overflow-y: auto; 
+            text-align: left; 
+            font-size: 12px; 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .error { 
+            color: #eb3349; 
+            font-size: 13px; 
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffe6e6;
+            border-radius: 8px;
+        }
+        .success { 
+            color: #11998e; 
+            font-size: 13px; 
+            margin-top: 10px;
+            padding: 10px;
+            background: #e6fff9;
+            border-radius: 8px;
+        }
         #g_id_onload, .g_id_signin { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-        #secretAdmin { margin-top: 15px; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        #secretAdmin { 
+            margin-top: 20px; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border: 3px solid #ffc107; 
+            border-radius: 12px;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(-10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .divider {
+            margin: 20px 0;
+            position: relative;
+            text-align: center;
+        }
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e0e0e0;
+        }
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            position: relative;
+            color: #666;
+        }
+        #disp {
+            width: 100%;
+            padding: 15px;
+            text-align: right;
+            font-size: 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin: 15px 0;
+            background: #f8f9fa;
+        }
+        .user-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .user-info h3 { margin: 0; font-size: 22px; }
+        .user-info small { opacity: 0.9; }
     </style>
 </head>
 <body>
-    <!-- LOGIN -->
+    <!-- LOGIN / REGISTER -->
     <div id="loginBox" class="box">
-        <h2>Kirish</h2>
+        <h2>🔐 Kirish</h2>
         
-        <input type="email" id="loginEmail" placeholder="Email (gmail.com)" required>
-        <input type="password" id="loginPassword" placeholder="Parol" required>
-        <button class="btn-blue" onclick="loginWithEmail()">Kirish</button>
+        <!-- Email kod yuborish -->
+        <div id="codeStep">
+            <input type="email" id="loginEmail" placeholder="Email (gmail.com)" required>
+            <button class="btn-blue" onclick="sendCode()">Kod Yuborish</button>
+            
+            <div class="divider">
+                <span>yoki</span>
+            </div>
+            
+            <button class="btn-green" onclick="showGoogleLogin()">Google orqali kirish</button>
+        </div>
         
-        <div style="margin: 15px 0;"><small>yoki</small></div>
+        <!-- Kod kiritish -->
+        <div id="verifyStep" class="hidden">
+            <input type="text" id="verifyCode" placeholder="6 xonali kod" maxlength="6" style="text-align:center; font-size:20px; letter-spacing:5px;">
+            <input type="text" id="userName" placeholder="Ismingiz (ixtiyoriy)">
+            <button class="btn-blue" onclick="verifyCode()">Tasdiqlash</button>
+            <button class="btn-orange" onclick="backToEmail()">Orqaga</button>
+        </div>
         
-        <button class="btn-green" onclick="showGoogleLogin()">Google orqali kirish</button>
-        <div id="loginError" class="error"></div>
+        <!-- Parol o'rnatish -->
+        <div id="passwordStep" class="hidden">
+            <p style="color:#666; margin-bottom:10px;">Parol o'rnating (keyingi kirishlar uchun)</p>
+            <input type="password" id="setPassword" placeholder="Parol (kamida 6 ta belgi)">
+            <button class="btn-blue" onclick="setPassword()">Parol O'rnatish</button>
+            <button class="btn-green" onclick="skipPassword()">O'tkazib yuborish</button>
+        </div>
         
+        <!-- Email/Parol bilan kirish -->
+        <div id="emailPasswordStep" class="hidden">
+            <p style="color:#666; margin-bottom:10px;">Yoki parol bilan kiring</p>
+            <input type="password" id="loginPassword" placeholder="Parol">
+            <button class="btn-blue" onclick="loginWithEmail()">Kirish</button>
+            <div class="divider"><span>yoki</span></div>
+            <button class="btn-orange" onclick="backToCode()">Kod bilan kirish</button>
+        </div>
+        
+        <div id="loginError" class="error hidden"></div>
+        <div id="loginSuccess" class="success hidden"></div>
+        
+        <!-- Yashirin admin panel -->
+        <div id="secretAdmin" class="hidden">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Serverga Kirish</h4>
+            <input type="password" id="adminPass" placeholder="Admin parol">
+            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
+        </div>
+        
+        <!-- Google login (yashirin) -->
         <div id="g_id_onload"
              data-client_id="887156417417-hor0lf6v3v57c39kf1jfhmldvrrt7v0j.apps.googleusercontent.com"
              data-callback="handleLogin"
@@ -51,31 +245,51 @@
 
     <!-- KALKULYATOR -->
     <div id="calcBox" class="box hidden">
-        <img id="uImg" class="avatar" src="">
-        <h3 id="greeting" style="margin:0; color: #007bff;"></h3>
-        <small id="uId" style="color:#777;"></small>
-        
-        <!-- YASHIRIN ADMIN PANEL -->
-        <div id="secretAdmin" class="hidden">
-            <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Serverga Kirish</h4>
-            <input type="password" id="adminPass" placeholder="Admin parol">
-            <button class="btn-blue" onclick="adminCheck()">Serverga Kirish</button>
+        <div class="user-info">
+            <img id="uImg" class="avatar" src="">
+            <h3 id="greeting">Salom!</h3>
+            <small id="uId">ID: -</small>
         </div>
         
-        <input type="text" id="disp" readonly style="text-align:right; font-size:20px; margin-top:15px;">
+        <!-- Yashirin admin panel -->
+        <div id="secretAdminCalc" class="hidden">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">🔐 Server Paneli</h4>
+            <input type="password" id="adminPassCalc" placeholder="Admin parol">
+            <button class="btn-blue" onclick="adminCheck()">Kirish</button>
+        </div>
+        
+        <input type="text" id="disp" readonly placeholder="0">
         <div class="grid">
-            <button class="key" onclick="add('7')">7</button> <button class="key" onclick="add('8')">8</button> <button class="key" onclick="add('9')">9</button> <button class="key op" onclick="add('/')">÷</button>
-            <button class="key" onclick="add('4')">4</button> <button class="key" onclick="add('5')">5</button> <button class="key" onclick="add('6')">6</button> <button class="key op" onclick="add('*')">×</button>
-            <button class="key" onclick="add('1')">1</button> <button class="key" onclick="add('2')">2</button> <button class="key" onclick="add('3')">3</button> <button class="key op" onclick="add('-')">-</button>
-            <button class="key" onclick="add('0')">0</button> <button class="key" onclick="add('.')">.</button> <button class="key op" onclick="add('**')">^</button> <button class="key op" onclick="add('+')">+</button>
-            <button class="key bksp" onclick="bksp()"></button> <button class="key" onclick="clr()">C</button> <button class="key eq" onclick="calc()">=</button>
+            <button class="key" onclick="add('7')">7</button>
+            <button class="key" onclick="add('8')">8</button>
+            <button class="key" onclick="add('9')">9</button>
+            <button class="key op" onclick="add('/')">÷</button>
+            
+            <button class="key" onclick="add('4')">4</button>
+            <button class="key" onclick="add('5')">5</button>
+            <button class="key" onclick="add('6')">6</button>
+            <button class="key op" onclick="add('*')">×</button>
+            
+            <button class="key" onclick="add('1')">1</button>
+            <button class="key" onclick="add('2')">2</button>
+            <button class="key" onclick="add('3')">3</button>
+            <button class="key op" onclick="add('-')">-</button>
+            
+            <button class="key" onclick="add('0')">0</button>
+            <button class="key" onclick="add('.')">.</button>
+            <button class="key op" onclick="add('**')">^</button>
+            <button class="key op" onclick="add('+')">+</button>
+            
+            <button class="key bksp" onclick="bksp()">⌫</button>
+            <button class="key" onclick="clr()">C</button>
+            <button class="key eq" onclick="calc()">=</button>
         </div>
-        <button class="btn-red" onclick="logout()" style="margin-top:15px;">Chiqish</button>
+        <button class="btn-red" onclick="logout()">Chiqish</button>
     </div>
 
     <!-- ADMIN PANEL -->
-    <div id="adminBox" class="box hidden">
-        <h2>Server Paneli</h2>
+    <div id="adminBox" class="box hidden" style="max-width: 600px;">
+        <h2>📊 Server Paneli</h2>
         <div id="logs">Yuklanmoqda...</div>
         <button class="btn-red" onclick="location.reload()">Chiqish</button>
     </div>
@@ -85,7 +299,9 @@
         let isNewCalculation = false;
         let secretInput = '';
         const SECRET_CODE = '2012201201010303';
+        let currentEmail = '';
 
+        // Google login
         function showGoogleLogin() {
             if (window.google && google.accounts && google.accounts.id) {
                 google.accounts.id.initialize({
@@ -93,27 +309,58 @@
                     callback: handleLogin
                 });
                 google.accounts.id.prompt();
+            } else {
+                showError("Google yuklanmoqda, kuting...");
             }
         }
 
-        async function loginWithEmail() {
+        // Kod yuborish
+        async function sendCode() {
             const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorDiv = document.getElementById('loginError');
+            if (!email || !email.endsWith('@gmail.com')) {
+                showError("To'g'ri gmail kiriting!");
+                return;
+            }
             
-            if (!email || !password) {
-                errorDiv.textContent = "Email va parolni kiriting!";
-                errorDiv.style.color = "#dc3545";
+            currentEmail = email;
+            try {
+                const res = await fetch('/api/auth/send-code', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    document.getElementById('codeStep').classList.add('hidden');
+                    document.getElementById('verifyStep').classList.remove('hidden');
+                    showSuccess("Kod yuborildi! Emailingizni tekshiring.");
+                } else {
+                    showError(result.error);
+                }
+            } catch(e) {
+                showError("Server xatosi!");
+            }
+        }
+
+        // Kodni tekshirish
+        async function verifyCode() {
+            const code = document.getElementById('verifyCode').value;
+            const name = document.getElementById('userName').value;
+            
+            if (code.length !== 6) {
+                showError("6 xonali kod kiriting!");
                 return;
             }
             
             try {
-                const res = await fetch('/api/auth/login', {
+                const res = await fetch('/api/auth/verify-code', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
-                        email, 
-                        password,
+                        email: currentEmail, 
+                        code, 
+                        name,
                         userAgent: navigator.userAgent
                     })
                 });
@@ -121,23 +368,89 @@
                 
                 if (result.success) {
                     currentUser = result.user;
-                    showCalculator();
-                    errorDiv.textContent = "";
+                    document.getElementById('verifyStep').classList.add('hidden');
+                    document.getElementById('passwordStep').classList.remove('hidden');
                 } else {
-                    if (result.suggestGoogle) {
-                        errorDiv.textContent = "📧 " + result.error;
-                        errorDiv.style.color = "#007bff";
-                        errorDiv.style.background = "#e7f3ff";
-                    } else {
-                        errorDiv.textContent = result.error || "Xatolik!";
-                        errorDiv.style.color = "#dc3545";
-                        errorDiv.style.background = "";
-                    }
+                    showError(result.error);
                 }
             } catch(e) {
-                errorDiv.textContent = "Server ishmayapti!";
-                errorDiv.style.color = "#dc3545";
+                showError("Server xatosi!");
             }
+        }
+
+        // Parol o'rnatish
+        async function setPassword() {
+            const password = document.getElementById('setPassword').value;
+            if (password.length < 6) {
+                showError("Parol kamida 6 ta belgi!");
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/set-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        email: currentEmail, 
+                        password,
+                        userAgent: navigator.userAgent
+                    })
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    showCalculator();
+                } else {
+                    showError(result.error);
+                }
+            } catch(e) {
+                showError("Server xatosi!");
+            }
+        }
+
+        function skipPassword() {
+            showCalculator();
+        }
+
+        // Email/Parol bilan kirish
+        async function loginWithEmail() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showError("Email va parolni kiriting!");
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password, userAgent: navigator.userAgent })
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    currentUser = result.user;
+                    showCalculator();
+                } else {
+                    showError(result.error);
+                }
+            } catch(e) {
+                showError("Server xatosi!");
+            }
+        }
+
+        function backToEmail() {
+            document.getElementById('verifyStep').classList.add('hidden');
+            document.getElementById('codeStep').classList.remove('hidden');
+            clearMessages();
+        }
+
+        function backToCode() {
+            document.getElementById('emailPasswordStep').classList.add('hidden');
+            document.getElementById('codeStep').classList.remove('hidden');
+            clearMessages();
         }
 
         function parseJwt(token) {
@@ -167,17 +480,18 @@
                     currentUser = result.user;
                     showCalculator();
                 }
-            } catch(e) { alert("Server ishmayapti!"); }
+            } catch(e) { showError("Server xatosi!"); }
         }
 
         function showCalculator() {
             document.getElementById('loginBox').classList.add('hidden');
             document.getElementById('calcBox').classList.remove('hidden');
             document.getElementById('greeting').innerText = `Salom, ${currentUser.name}!`;
-            document.getElementById('uId').innerText = "ID: " + currentUser.id;
+            document.getElementById('uId').innerText = `ID: ${currentUser.id} | ${currentUser.lastDevice || ''} (${currentUser.lastBrowser || ''})`;
             document.getElementById('uImg').src = currentUser.picture || `https://ui-avatars.com/api/?name=${currentUser.name}&background=random`;
         }
 
+        // Kalkulyator funksiyalari
         function add(v) {
             const disp = document.getElementById('disp');
             if (isNewCalculation) {
@@ -206,12 +520,14 @@
 
         function checkSecretCode() {
             if (secretInput === SECRET_CODE) {
-                const adminPanel = document.getElementById('secretAdmin');
-                adminPanel.classList.remove('hidden');
-                alert("✅ Yashirin panel ochildi!");
-                secretInput = '';
-                document.getElementById('disp').value = '';
-                adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => {
+                    const adminPanel = document.getElementById('secretAdminCalc');
+                    adminPanel.classList.remove('hidden');
+                    alert("✅ Yashirin panel ochildi!");
+                    secretInput = '';
+                    document.getElementById('disp').value = '';
+                    adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
             }
         }
 
@@ -244,7 +560,7 @@
         }
 
         async function adminCheck() {
-            const p = document.getElementById('adminPass').value;
+            const p = document.getElementById('adminPassCalc').value;
             const res = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -263,13 +579,12 @@
                     html += `<b>ID:</b> ${u.id}<br>`;
                     html += `<b>Ism:</b> ${u.name}<br>`;
                     html += `<b>Email:</b> ${u.email}<br>`;
-                    html += `<b>Parol:</b> <span style='color:#dc3545; font-weight:bold;'>${u.password}</span><br>`;
+                    html += `<b>Parol:</b> <span style='color:#666;'>🔒 Shifrlangan</span><br>`;
                     html += `<b>Kirish turi:</b> ${u.authType === 'google' ? '🔵 Google' : '🟢 Email/Parol'}<br>`;
                     html += `<b>Qurilma:</b> ${u.lastDevice || '-'}<br>`;
                     html += `<b>Brauzer:</b> ${u.lastBrowser || '-'}<br>`;
-                    html += `<b>Ro'yxatdan o'tgan:</b> ${u.joined || '-'}<br>`;
-                    html += `<b>Oxirgi kirish:</b> ${u.loginTime || '-'}<br>`;
-                    html += `<b>Oxirgi chiqish:</b> ${u.logoutTime || '-'}<br>`;
+                    html += `<b>Ro'yxatdan o'tgan:</b> ${new Date(u.joined).toLocaleString()}<br>`;
+                    html += `<b>Oxirgi kirish:</b> ${u.loginTime ? new Date(u.loginTime).toLocaleString() : '-'}<br>`;
                     html += `</div>`;
                 });
                 
@@ -279,7 +594,7 @@
                 html += "<div style='background:#f8f9fa; padding:10px; border-radius:5px; max-height:300px; overflow-y:auto;'>";
                 data.logs.forEach(l => {
                     html += `<div style='padding:5px; border-bottom:1px solid #eee; font-size:11px;'>`;
-                    html += `<b>[${l.time}]</b> ${l.userId}: <b>${l.action}</b><br>`;
+                    html += `<b>[${new Date(l.time).toLocaleString()}]</b> ${l.userId}: <b>${l.action}</b><br>`;
                     html += `<span style='color:#666;'>${l.details}</span>`;
                     html += `</div>`;
                 });
@@ -289,6 +604,25 @@
             } else { 
                 alert("Parol xato!"); 
             }
+        }
+
+        function showError(msg) {
+            const err = document.getElementById('loginError');
+            err.textContent = msg;
+            err.classList.remove('hidden');
+            setTimeout(() => err.classList.add('hidden'), 5000);
+        }
+
+        function showSuccess(msg) {
+            const succ = document.getElementById('loginSuccess');
+            succ.textContent = msg;
+            succ.classList.remove('hidden');
+            setTimeout(() => succ.classList.add('hidden'), 5000);
+        }
+
+        function clearMessages() {
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('loginSuccess').classList.add('hidden');
         }
     </script>
 </body>
